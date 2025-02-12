@@ -17,6 +17,8 @@
 
 #include "stm32f4xx_hal.h"
 
+#define VCOM_RX_BUF_SIZE 128
+
 /**
  * @brief  
  * 
