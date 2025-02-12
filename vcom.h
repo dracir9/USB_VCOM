@@ -3,7 +3,7 @@
  * @author Ricard Bitriá Ribes (https://github.com/dracir9)
  * Created Date: 05-02-2025
  * -----
- * Last Modified: 05-02-2025
+ * Last Modified: 11-02-2025
  * Modified By: Ricard Bitriá Ribes
  * -----
  */
@@ -15,16 +15,15 @@
     extern "C" {
 #endif
 
-#include "usbd_cdc_if.h"
-
-/* VCOM CONFIGURATION */
-#define VCOM_BUF_SIZE 128
+#include "stm32f4xx_hal.h"
 
 /**
  * @brief  
  * 
  */
-void VCOM_Init(void);
+void VCOM_Init();
+
+void VCOM_Task();
 
 //void VCOM_DeviceStop(void);
 //void VCOM_DeviceReStart(void);
