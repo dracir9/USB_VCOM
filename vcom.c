@@ -3,41 +3,70 @@
  * @author Ricard Bitriá Ribes (https://github.com/dracir9)
  * Created Date: 05-02-2025
  * -----
- * Last Modified: 11-02-2025
+ * Last Modified: 12-02-2025
  * Modified By: Ricard Bitriá Ribes
  * -----
  */
 
 #include "vcom.h"
-#include "tusb.h"
+#include "usbd_cdc_if.h"
 
+/* Received data over USB are stored in this buffer      */
+extern uint8_t UserRxBufferFS[APP_RX_DATA_SIZE];
+
+/* Data to send over USB CDC are stored in this buffer   */
+extern uint8_t UserTxBufferFS[APP_TX_DATA_SIZE];
+
+/* User interface callback functions                     */
+extern USBD_CDC_ItfTypeDef USBD_Interface_fops_FS;
+
+/* USB Device handle */
+extern USBD_HandleTypeDef hUsbDeviceFS;
+
+/* VCOM internal state variables */
 static char RxBuffer[VCOM_RX_BUF_SIZE] = {0};
-static uint8_t strReceived = 0;
+static uint8_t strReceived = RESET;
 static uint16_t strLen = 0;
+static uint8_t vcomOpen = RESET;
+uint8_t RTSstatus, DTRstatus;
+
+
+/* Private function declaration */
+static int8_t VCOM_Init_FS(void);
+static int8_t VCOM_DeInit_FS(void);
+static int8_t VCOM_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length);
+static int8_t VCOM_Receive_FS(uint8_t* pbuf, uint32_t *Len);
+static int8_t VCOM_TransmitCplt_FS(uint8_t *pbuf, uint32_t *Len, uint8_t epnum);
 
 inline void VCOM_Init()
 {
-  tud_init(BOARD_TUD_RHPORT);
+  // Inject custom functions
+  USBD_Interface_fops_FS.Init =         VCOM_Init_FS;
+  USBD_Interface_fops_FS.DeInit =       VCOM_DeInit_FS;
+  USBD_Interface_fops_FS.Control =      VCOM_Control_FS;
+  USBD_Interface_fops_FS.Receive =      VCOM_Receive_FS;
+  USBD_Interface_fops_FS.TransmitCplt = VCOM_TransmitCplt_FS;
 
-  strReceived = 0;
+  strReceived = RESET;
   strLen = 0;
 }
 
 inline void VCOM_Task()
 {
-  tud_task();    
+  return;  
 }
 
 inline uint16_t VCOM_GetData(uint8_t *buf, uint16_t len)
 {
-  if (strLen == 0) return;
+  if (strLen == 0) return 0;
 
   len = strLen < len ? strLen : len;
 
-  strReceived = 0;
+  strReceived = RESET;
   strLen = 0;
 
-  return strncpy(buf, RxBuffer, len);
+  strncpy(buf, RxBuffer, len);
+  return len;
 }
 
 uint16_t VCOM_GetStr(char *str, uint16_t maxLen)
@@ -47,10 +76,11 @@ uint16_t VCOM_GetStr(char *str, uint16_t maxLen)
   // Read the maximum number of chars possible
   maxLen = strLen < maxLen ? strLen : maxLen;
 
-  strReceived = 0;
+  strReceived = RESET;
   strLen = 0;
 
-  return strncpy(str, RxBuffer, maxLen);
+  strncpy(str, RxBuffer, maxLen);
+  return maxLen;
 }
 
 inline uint16_t VCOM_BytesAvailable()
@@ -65,55 +95,200 @@ uint8_t VCOM_isStrAvailable()
 
 void VCOM_flush()
 {
-  tud_cdc_write_flush();
   strLen = 0;
-  strReceived = 0;
+  strReceived = RESET;
 }
 
 void VCOM_putc(uint8_t c)
 {
-  tud_cdc_write(&c, 1);
+  CDC_Transmit_FS(&c, 1);
 }
 
 inline void VCOM_puts(char s[])
 {
-  tud_cdc_write_str(s);
+  CDC_Transmit_FS(s, strlen(s));
 }
 
 inline void VCOM_SendData(uint8_t *buf, uint16_t len)
 {
-  tud_cdc_write(buf, len);
+  CDC_Transmit_FS(buf, len);
 }
 
 //--------------------------------------------------------------------+
-// Interrupts and callbacks
+// Private Functions
 //--------------------------------------------------------------------+
 
-void tud_cdc_rx_cb(uint8_t itf)
+/**
+  * @brief  Initializes the CDC media low layer over the FS USB IP
+  * @retval USBD_OK if all operations are OK else USBD_FAIL
+  */
+static int8_t VCOM_Init_FS(void)
 {
-  if (strReceived)
-  {// If there is a string pending to read, then discard new data
-    tud_cdc_n_read_flush(itf);
-    return;
+  /* Set Application Buffers */
+  USBD_CDC_SetTxBuffer(&hUsbDeviceFS, UserTxBufferFS, 0);
+  USBD_CDC_SetRxBuffer(&hUsbDeviceFS, UserRxBufferFS);
+  return (USBD_OK);
+}
+ 
+/**
+ * @brief  DeInitializes the CDC media low layer
+ * @retval USBD_OK if all operations are OK else USBD_FAIL
+ */
+static int8_t VCOM_DeInit_FS(void)
+{
+  return (USBD_OK);
+}
+
+/**
+ * @brief  Manage the CDC class requests
+ * @param  cmd: Command code
+ * @param  pbuf: Buffer containing command data (request parameters)
+ * @param  length: Number of data to be sent (in bytes)
+ * @retval Result of the operation: USBD_OK if all operations are OK else USBD_FAIL
+ */
+static int8_t VCOM_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
+{
+  USBD_SetupReqTypedef* req = (USBD_SetupReqTypedef*)pbuf;
+  switch(cmd)
+  {
+    case CDC_SEND_ENCAPSULATED_COMMAND:
+      break;
+
+    case CDC_GET_ENCAPSULATED_RESPONSE:
+      break;
+
+    case CDC_SET_COMM_FEATURE:
+      break;
+
+    case CDC_GET_COMM_FEATURE:
+      break;
+
+    case CDC_CLEAR_COMM_FEATURE:
+      break;
+
+  /*******************************************************************************/
+  /* Line Coding Structure                                                       */
+  /*-----------------------------------------------------------------------------*/
+  /* Offset | Field       | Size | Value  | Description                          */
+  /* 0      | dwDTERate   |   4  | Number |Data terminal rate, in bits per second*/
+  /* 4      | bCharFormat |   1  | Number | Stop bits                            */
+  /*                                        0 - 1 Stop bit                       */
+  /*                                        1 - 1.5 Stop bits                    */
+  /*                                        2 - 2 Stop bits                      */
+  /* 5      | bParityType |  1   | Number | Parity                               */
+  /*                                        0 - None                             */
+  /*                                        1 - Odd                              */
+  /*                                        2 - Even                             */
+  /*                                        3 - Mark                             */
+  /*                                        4 - Space                            */
+  /* 6      | bDataBits  |   1   | Number Data bits (5, 6, 7, 8 or 16).          */
+  /*******************************************************************************/
+    case CDC_SET_LINE_CODING:
+      break;
+
+    case CDC_GET_LINE_CODING:
+      break;
+
+    case CDC_SET_CONTROL_LINE_STATE:
+      RTSstatus = (req ->wValue & 0x02) > 0 ? SET : RESET; // host set/reset RTS
+      DTRstatus = (req->wValue & 0x01) > 0 ? SET : RESET; // host set/reset DTR
+
+      vcomOpen = DTRstatus;
+      break;
+
+    case CDC_SEND_BREAK:
+      break;
+
+    default:
+      break;
   }
 
-  // Read data
-  uint32_t count = tud_cdc_n_read(itf, &RxBuffer[strLen], VCOM_RX_BUF_SIZE - strLen);
+  return (USBD_OK);
+}
 
-  // Check for end of line characters
-  for (uint32_t i = 0; i < count; i++)
+/**
+ * @brief  Data received over USB OUT endpoint are sent over CDC interface
+ *         through this function.
+ *
+ *         @note
+ *         This function will issue a NAK packet on any OUT packet received on
+ *         USB endpoint until exiting this function. If you exit this function
+ *         before transfer is complete on CDC interface (ie. using DMA controller)
+ *         it will result in receiving more data while previous ones are still
+ *         not sent.
+ *
+ * @param  Buf: Buffer of data to be received
+ * @param  Len: Number of data received (in bytes)
+ * @retval Result of the operation: USBD_OK if all operations are OK else USBD_FAIL
+ */
+static int8_t VCOM_Receive_FS(uint8_t* Buf, uint32_t *Len)
+{
+  USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
+  USBD_CDC_ReceivePacket(&hUsbDeviceFS);
+
+  // If there is a string pending to read, then discard new data
+  if (strReceived == SET) return USBD_OK;
+
+  uint32_t i = 0;
+  while(i < *Len && i < VCOM_RX_BUF_SIZE)
   {
-    if (RxBuffer[strLen] < 32)
-    {
-      RxBuffer[strLen] = '\0';
+	  if (Buf[i] < 32) // If it is a control character
+	  {
+		  RxBuffer[strLen++] = '\0';
 		  strReceived = SET;
 		  break;
-    }
-    strLen++;
+	  }
+
+	  RxBuffer[strLen++] = Buf[i++];
   }
+
+  return (USBD_OK);
 }
 
-void OTG_FS_IRQHandler(void)
+/**
+ * @brief  CDC_Transmit_FS
+ *         Data to send over USB IN endpoint are sent over CDC interface
+ *         through this function.
+ *         @note
+ *
+ *
+ * @param  Buf: Buffer of data to be sent
+ * @param  Len: Number of data to be sent (in bytes)
+ * @retval USBD_OK if all operations are OK else USBD_FAIL or USBD_BUSY
+ */
+uint8_t VCOM_Transmit_FS(uint8_t* Buf, uint16_t Len)
 {
-  tud_int_handler(0);
+  uint8_t result = USBD_OK;
+
+  USBD_CDC_HandleTypeDef *hcdc = (USBD_CDC_HandleTypeDef*)hUsbDeviceFS.pClassData;
+  if (hcdc->TxState != 0){
+    return USBD_BUSY;
+  }
+  USBD_CDC_SetTxBuffer(&hUsbDeviceFS, Buf, Len);
+  result = USBD_CDC_TransmitPacket(&hUsbDeviceFS);
+
+  return result;
+}
+
+/**
+ * @brief  CDC_TransmitCplt_FS
+ *         Data transmitted callback
+ *
+ *         @note
+ *         This function is IN transfer complete callback used to inform user that
+ *         the submitted Data is successfully sent over USB.
+ *
+ * @param  Buf: Buffer of data to be received
+ * @param  Len: Number of data received (in bytes)
+ * @retval Result of the operation: USBD_OK if all operations are OK else USBD_FAIL
+ */
+static int8_t VCOM_TransmitCplt_FS(uint8_t *Buf, uint32_t *Len, uint8_t epnum)
+{
+  uint8_t result = USBD_OK;
+
+  UNUSED(Buf);
+  UNUSED(Len);
+  UNUSED(epnum);
+
+  return result;
 }
