@@ -3,7 +3,7 @@
  * @author Ricard Bitriá Ribes (https://github.com/dracir9)
  * Created Date: 05-02-2025
  * -----
- * Last Modified: 11-02-2025
+ * Last Modified: 12-02-2025
  * Modified By: Ricard Bitriá Ribes
  * -----
  */
@@ -30,14 +30,15 @@ inline void VCOM_Task()
 
 inline uint16_t VCOM_GetData(uint8_t *buf, uint16_t len)
 {
-  if (strLen == 0) return;
+  if (strLen == 0) return 0;
 
   len = strLen < len ? strLen : len;
 
   strReceived = 0;
   strLen = 0;
 
-  return strncpy(buf, RxBuffer, len);
+  strncpy(buf, RxBuffer, len);
+  return len;
 }
 
 uint16_t VCOM_GetStr(char *str, uint16_t maxLen)
@@ -50,7 +51,8 @@ uint16_t VCOM_GetStr(char *str, uint16_t maxLen)
   strReceived = 0;
   strLen = 0;
 
-  return strncpy(str, RxBuffer, maxLen);
+  strncpy(str, RxBuffer, maxLen);
+  return maxLen;
 }
 
 inline uint16_t VCOM_BytesAvailable()
