@@ -11,6 +11,7 @@
 #include "vcom.h"
 #include "tusb.h"
 
+static char RxBuffer[VCOM_RX_BUF_SIZE] = {0};
 static uint8_t strReceived = 0;
 static uint16_t strLen = 0;
 
@@ -20,52 +21,41 @@ inline void VCOM_Init()
 
   strReceived = 0;
   strLen = 0;
-
-  // Set the line ending character to new line
-  tud_cdc_set_wanted_char('\n');
 }
 
-inline void VCOM_Task ()
+inline void VCOM_Task()
 {
   tud_task();    
 }
 
 inline uint16_t VCOM_GetData(uint8_t *buf, uint16_t len)
 {
+  if (strLen == 0) return;
+
+  len = strLen < len ? strLen : len;
+
   strReceived = 0;
   strLen = 0;
-  return tud_cdc_read(buf, len);
+
+  return strncpy(buf, RxBuffer, len);
 }
 
 uint16_t VCOM_GetStr(char *str, uint16_t maxLen)
 {
-  if (strReceived)
-  {
-    // Read the maximum number of chars possible
-    maxLen = strLen < maxLen ? strLen : maxLen;
-    uint32_t count = tud_cdc_read(str, maxLen);
+  if (!strReceived) return 0;
 
-    // If the full string has been read
-    if (count >= strLen)
-    {
-      uint32_t i = count;
-      while(str[--i] < 32);
-      str[count - i] = '\0';
-      tud_cdc_read_flush();
-      strReceived = 0;
-      strLen = 0;
-    }
-    else
-      strLen -= count;
+  // Read the maximum number of chars possible
+  maxLen = strLen < maxLen ? strLen : maxLen;
 
-    return count;
-  }
-  return 0;
+  strReceived = 0;
+  strLen = 0;
+
+  return strncpy(str, RxBuffer, maxLen);
 }
 
 inline uint16_t VCOM_BytesAvailable()
 {
-  return tud_cdc_available();
+  return strLen;
 }
 
 uint8_t VCOM_isStrAvailable()
@@ -76,6 +66,8 @@ uint8_t VCOM_isStrAvailable()
 void VCOM_flush()
 {
   tud_cdc_write_flush();
+  strLen = 0;
+  strReceived = 0;
 }
 
 void VCOM_putc(uint8_t c)
@@ -97,12 +89,27 @@ inline void VCOM_SendData(uint8_t *buf, uint16_t len)
 // Interrupts and callbacks
 //--------------------------------------------------------------------+
 
-void tud_cdc_rx_wanted_cb(uint8_t itf, char wanted_char)
+void tud_cdc_rx_cb(uint8_t itf)
 {
-  if (!strReceived) 
+  if (strReceived)
+  {// If there is a string pending to read, then discard new data
+    tud_cdc_n_read_flush(itf);
+    return;
+  }
+
+  // Read data
+  uint32_t count = tud_cdc_n_read(itf, &RxBuffer[strLen], VCOM_RX_BUF_SIZE - strLen);
+
+  // Check for end of line characters
+  for (uint32_t i = 0; i < count; i++)
   {
-    strLen = tud_cdc_n_available(itf);
-    strReceived = 1;
+    if (RxBuffer[strLen] < 32)
+    {
+      RxBuffer[strLen] = '\0';
+		  strReceived = SET;
+		  break;
+    }
+    strLen++;
   }
 }
 
