@@ -36,6 +36,7 @@ static int8_t VCOM_Init_FS(void);
 static int8_t VCOM_DeInit_FS(void);
 static int8_t VCOM_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length);
 static int8_t VCOM_Receive_FS(uint8_t* pbuf, uint32_t *Len);
+static uint8_t VCOM_Transmit_FS(uint8_t* Buf, uint16_t Len);
 static int8_t VCOM_TransmitCplt_FS(uint8_t *pbuf, uint32_t *Len, uint8_t epnum);
 
 inline void VCOM_Init()
@@ -80,7 +81,10 @@ uint16_t VCOM_GetStr(char *str, uint16_t maxLen)
   strLen = 0;
 
   strncpy(str, RxBuffer, maxLen);
-  return maxLen;
+
+  RxBuffer[maxLen-1] = '\0'; // Ensure string is null terminated
+
+  return maxLen-1; // Return actual string length, without the terminating null character
 }
 
 inline uint16_t VCOM_BytesAvailable()
@@ -101,17 +105,17 @@ void VCOM_flush()
 
 void VCOM_putc(uint8_t c)
 {
-  CDC_Transmit_FS(&c, 1);
+  VCOM_Transmit_FS(&c, 1);
 }
 
 inline void VCOM_puts(char s[])
 {
-  CDC_Transmit_FS(s, strlen(s));
+  VCOM_Transmit_FS(s, strlen(s));
 }
 
 inline void VCOM_SendData(uint8_t *buf, uint16_t len)
 {
-  CDC_Transmit_FS(buf, len);
+  VCOM_Transmit_FS(buf, len);
 }
 
 //--------------------------------------------------------------------+
