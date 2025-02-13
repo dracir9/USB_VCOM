@@ -12,14 +12,14 @@
 #include "tusb.h"
 
 static char RxBuffer[VCOM_RX_BUF_SIZE] = {0};
-static uint8_t strReceived = 0;
+static uint8_t strReceived = RESET;
 static uint16_t strLen = 0;
 
 inline void VCOM_Init()
 {
   tud_init(BOARD_TUD_RHPORT);
 
-  strReceived = 0;
+  strReceived = RESET;
   strLen = 0;
 }
 
@@ -34,7 +34,7 @@ inline uint16_t VCOM_GetData(uint8_t *buf, uint16_t len)
 
   len = strLen < len ? strLen : len;
 
-  strReceived = 0;
+  strReceived = RESET;
   strLen = 0;
 
   strncpy(buf, RxBuffer, len);
@@ -48,7 +48,7 @@ uint16_t VCOM_GetStr(char *str, uint16_t maxLen)
   // Read the maximum number of chars possible
   maxLen = strLen < maxLen ? strLen : maxLen;
 
-  strReceived = 0;
+  strReceived = RESET;
   strLen = 0;
 
   strncpy(str, RxBuffer, maxLen);
@@ -63,25 +63,35 @@ inline uint16_t VCOM_BytesAvailable()
   return strLen;
 }
 
-uint8_t VCOM_isStrAvailable()
+uint8_t VCOM_IsStrAvailable()
 {
   return strReceived;
 }
 
-void VCOM_flush()
+uint8_t VCOM_IsConnected()
+{
+    return tud_cdc_connected();
+}
+
+void VCOM_Flush()
 {
   fflush(stdout);
   tud_cdc_write_flush();
-  strLen = 0;
-  strReceived = 0;
 }
 
-void VCOM_putc(uint8_t c)
+void VCOM_Discard()
+{
+  tud_cdc_read_flush();
+  strLen = 0;
+  strReceived = RESET;
+}
+
+void VCOM_Putc(uint8_t c)
 {
   tud_cdc_write(&c, 1);
 }
 
-inline void VCOM_puts(char s[])
+inline void VCOM_Puts(char s[])
 {
   tud_cdc_write_str(s);
 }

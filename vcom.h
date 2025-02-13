@@ -3,7 +3,7 @@
  * @author Ricard Bitriá Ribes (https://github.com/dracir9)
  * Created Date: 05-02-2025
  * -----
- * Last Modified: 11-02-2025
+ * Last Modified: 13-02-2025
  * Modified By: Ricard Bitriá Ribes
  * -----
  */
@@ -26,11 +26,6 @@
 void VCOM_Init();
 
 void VCOM_Task();
-
-//void VCOM_DeviceStop(void);
-//void VCOM_DeviceReStart(void);
-//uint8_t VCOM_DeviceStatus(void);
-//uint8_t VCOM_GetStatus(void);
 
 /**
  * @brief  Get all raw bytes currently stored in the input buffer and remove them.
@@ -64,27 +59,33 @@ uint16_t VCOM_BytesAvailable();
  * 
  * @return uint8_t          Return 1 if there is an available string, returns 0 otherwise
  */
-uint8_t VCOM_isStrAvailable();
+uint8_t VCOM_IsStrAvailable();
 
 /**
  * @brief  Check the status of the USB virtual COM
  * 
  * @return uint8_t          Returns 1 if the communication is active, returns 0 otherwise
  */
-uint8_t VCOM_isConnected();
+uint8_t VCOM_IsConnected();
 
 /**
- * @brief  Empty input buffer
+ * @brief  Force sending data
  * 
  */
-void VCOM_flush();
+void VCOM_Flush();
+
+/**
+ * @brief  Clear input buffers
+ * 
+ */
+void VCOM_Discard();
 
 /**
  * @brief  Send a character over USB virtual COM
  * 
  * @param  c                Character to send
  */
-void VCOM_putc(uint8_t c);
+void VCOM_Putc(uint8_t c);
 
 /**
  * @brief  Send string over USB virtual COM
@@ -92,7 +93,7 @@ void VCOM_putc(uint8_t c);
  * 
  * @param  s                String pointer
  */
-void VCOM_puts(char s[]);
+void VCOM_Puts(char s[]);
 
 /**
  * @brief  Send data over USB virtual COM
