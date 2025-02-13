@@ -3,7 +3,7 @@
  * @author Ricard Bitriá Ribes (https://github.com/dracir9)
  * Created Date: 05-02-2025
  * -----
- * Last Modified: 12-02-2025
+ * Last Modified: 13-02-2025
  * Modified By: Ricard Bitriá Ribes
  * -----
  */
@@ -57,6 +57,11 @@ inline void VCOM_Task()
   return;  
 }
 
+inline uint8_t VCOM_IsConnected()
+{
+  return vcomOpen;
+}
+
 inline uint16_t VCOM_GetData(uint8_t *buf, uint16_t len)
 {
   if (strLen == 0) return 0;
@@ -92,23 +97,28 @@ inline uint16_t VCOM_BytesAvailable()
   return strLen;
 }
 
-uint8_t VCOM_isStrAvailable()
+uint8_t VCOM_IsStrAvailable()
 {
   return strReceived;
 }
 
-void VCOM_flush()
+void VCOM_Flush()
+{
+  fflush(stdout);
+}
+
+void VCOM_Discard()
 {
   strLen = 0;
   strReceived = RESET;
 }
 
-void VCOM_putc(uint8_t c)
+void VCOM_Putc(uint8_t c)
 {
   VCOM_Transmit_FS(&c, 1);
 }
 
-inline void VCOM_puts(char s[])
+inline void VCOM_Puts(char s[])
 {
   VCOM_Transmit_FS(s, strlen(s));
 }
@@ -227,9 +237,6 @@ static int8_t VCOM_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
  */
 static int8_t VCOM_Receive_FS(uint8_t* Buf, uint32_t *Len)
 {
-  USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
-  USBD_CDC_ReceivePacket(&hUsbDeviceFS);
-
   // If there is a string pending to read, then discard new data
   if (strReceived == SET) return USBD_OK;
 
@@ -245,6 +252,10 @@ static int8_t VCOM_Receive_FS(uint8_t* Buf, uint32_t *Len)
 
 	  RxBuffer[strLen++] = Buf[i++];
   }
+
+  // Prepare for next data
+  USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
+  USBD_CDC_ReceivePacket(&hUsbDeviceFS);
 
   return (USBD_OK);
 }
@@ -295,4 +306,16 @@ static int8_t VCOM_TransmitCplt_FS(uint8_t *Buf, uint32_t *Len, uint8_t epnum)
   UNUSED(epnum);
 
   return result;
+}
+
+//--------------------------------------------------------------------+
+// Callbacks
+//--------------------------------------------------------------------+
+// Override built-in _write function. This gets called when data is written to stdout.
+int _write(int file, char *ptr, int len)
+{
+  (void)file;
+
+  while (VCOM_IsConnected() && CDC_Transmit_FS((uint8_t*)ptr, (uint16_t)len) == USBD_BUSY);
+  return len;
 }
