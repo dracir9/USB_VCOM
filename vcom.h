@@ -28,14 +28,6 @@ void VCOM_Init();
 void VCOM_Task();
 
 /**
- * @brief  CDC_isConnected
- * 		   Return the state of the Virtual COM port
- *
- * @return SET if the VCOM port is open, RESET otherwise
- */
-uint8_t VCOM_IsConnected();
-
-/**
  * @brief  Get all raw bytes currently stored in the input buffer and remove them.
  *         Data is returned AS IS, without any termination and ignoring the line break characters.
  * 
