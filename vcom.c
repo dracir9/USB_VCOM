@@ -37,7 +37,7 @@ inline uint16_t VCOM_GetData(uint8_t *buf, uint16_t len)
   strReceived = RESET;
   strLen = 0;
 
-  strncpy(buf, RxBuffer, len);
+  memcpy(buf, RxBuffer, len);
   return len;
 }
 
@@ -51,7 +51,7 @@ uint16_t VCOM_GetStr(char *str, uint16_t maxLen)
   strReceived = RESET;
   strLen = 0;
 
-  strncpy(str, RxBuffer, maxLen);
+  memcpy(str, RxBuffer, maxLen);
 
   RxBuffer[maxLen-1] = '\0'; // Ensure string is null terminated
 
