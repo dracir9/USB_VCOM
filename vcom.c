@@ -3,7 +3,7 @@
  * @author Ricard Bitriá Ribes (https://github.com/dracir9)
  * Created Date: 05-02-2025
  * -----
- * Last Modified: 12-02-2025
+ * Last Modified: 13-02-2025
  * Modified By: Ricard Bitriá Ribes
  * -----
  */
@@ -52,7 +52,10 @@ uint16_t VCOM_GetStr(char *str, uint16_t maxLen)
   strLen = 0;
 
   strncpy(str, RxBuffer, maxLen);
-  return maxLen;
+
+  RxBuffer[maxLen-1] = '\0'; // Ensure string is null terminated
+
+  return maxLen-1; // Return actual string length, without the terminating null character
 }
 
 inline uint16_t VCOM_BytesAvailable()
@@ -67,6 +70,7 @@ uint8_t VCOM_isStrAvailable()
 
 void VCOM_flush()
 {
+  fflush(stdout);
   tud_cdc_write_flush();
   strLen = 0;
   strReceived = 0;
@@ -107,12 +111,20 @@ void tud_cdc_rx_cb(uint8_t itf)
   {
     if (RxBuffer[strLen] < 32)
     {
-      RxBuffer[strLen] = '\0';
+      RxBuffer[strLen++] = '\0';
 		  strReceived = SET;
 		  break;
     }
     strLen++;
   }
+}
+
+// Override built-in _write function. This gets called when data is written to stdout.
+int _write(int file, char *ptr, int len)
+{
+  (void)file;
+
+  return tud_cdc_write(ptr, len);
 }
 
 void OTG_FS_IRQHandler(void)
