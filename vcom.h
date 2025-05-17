@@ -3,7 +3,7 @@
  * @author Ricard Bitriá Ribes (https://github.com/dracir9)
  * Created Date: 05-02-2025
  * -----
- * Last Modified: 13-02-2025
+ * Last Modified: 17-05-2025
  * Modified By: Ricard Bitriá Ribes
  * -----
  */
@@ -15,7 +15,7 @@
     extern "C" {
 #endif
 
-#include "stm32f4xx_hal.h"
+#include "stdint.h"
 
 #define VCOM_RX_BUF_SIZE 128
 
