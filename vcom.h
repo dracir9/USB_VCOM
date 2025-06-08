@@ -3,7 +3,7 @@
  * @author Ricard Bitriá Ribes (https://github.com/dracir9)
  * Created Date: 05-02-2025
  * -----
- * Last Modified: 17-05-2025
+ * Last Modified: 29-05-2025
  * Modified By: Ricard Bitriá Ribes
  * -----
  */
@@ -17,7 +17,9 @@
 
 #include "stdint.h"
 
-#define VCOM_RX_BUF_SIZE 128
+#ifndef VCOM_RX_BUF_SIZE
+    #define VCOM_RX_BUF_SIZE 128
+#endif
 
 /**
  * @brief  
