@@ -3,7 +3,7 @@
  * @author Ricard Bitriá Ribes (https://github.com/dracir9)
  * Created Date: 05-02-2025
  * -----
- * Last Modified: 13-02-2025
+ * Last Modified: 09-07-2025
  * Modified By: Ricard Bitriá Ribes
  * -----
  */
@@ -311,11 +311,13 @@ static int8_t VCOM_TransmitCplt_FS(uint8_t *Buf, uint32_t *Len, uint8_t epnum)
 //--------------------------------------------------------------------+
 // Callbacks
 //--------------------------------------------------------------------+
-// Override built-in _write function. This gets called when data is written to stdout.
-int _write(int file, char *ptr, int len)
-{
-  (void)file;
+#if VCOM_LINK_PRINTF
+  // Override built-in _write function. This gets called when data is written to stdout.
+  int _write(int file, char *ptr, int len)
+  {
+    (void)file;
 
-  while (VCOM_IsConnected() && CDC_Transmit_FS((uint8_t*)ptr, (uint16_t)len) == USBD_BUSY);
-  return len;
-}
+    while (VCOM_IsConnected() && CDC_Transmit_FS((uint8_t*)ptr, (uint16_t)len) == USBD_BUSY);
+    return len;
+  }
+#endif

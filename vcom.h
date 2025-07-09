@@ -3,7 +3,7 @@
  * @author Ricard Bitriá Ribes (https://github.com/dracir9)
  * Created Date: 05-02-2025
  * -----
- * Last Modified: 29-05-2025
+ * Last Modified: 09-07-2025
  * Modified By: Ricard Bitriá Ribes
  * -----
  */
@@ -17,8 +17,32 @@
 
 #include "stdint.h"
 
+// Include configuration header if exists
+// This allows to override default configuration values
+#if defined __has_include
+    #if __has_include ("config.h")
+        #include "config.h"
+    #endif
+#endif
+
+// Load default configuration values
+// Defines can be overridden by the config.h file
+
+/**
+ * @brief  Size of the input buffer for the USB virtual COM
+ * 
+ */
 #ifndef VCOM_RX_BUF_SIZE
     #define VCOM_RX_BUF_SIZE 128
+#endif
+
+/**
+ * @brief  Redirect printf output to the USB virtual COM
+ *        If set to 1, printf will be redirected to the USB virtual COM
+ *        If set to 0, printf will not be redirected
+ */
+#ifndef VCOM_LINK_PRINTF
+    #define VCOM_LINK_PRINTF 0
 #endif
 
 /**
