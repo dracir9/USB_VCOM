@@ -3,11 +3,12 @@
  * @author Ricard Bitriá Ribes (https://github.com/dracir9)
  * Created Date: 05-02-2025
  * -----
- * Last Modified: 09-07-2025
+ * Last Modified: 10-07-2025
  * Modified By: Ricard Bitriá Ribes
  * -----
  */
 
+#include <stdarg.h>
 #include "vcom.h"
 #include "usbd_cdc_if.h"
 
@@ -113,6 +114,9 @@ void VCOM_Discard()
   strReceived = RESET;
 }
 
+//--------------------------------------------------------------------+
+// Write Functions
+
 void VCOM_Putc(uint8_t c)
 {
   VCOM_Transmit_FS(&c, 1);
@@ -126,6 +130,21 @@ inline void VCOM_Puts(char s[])
 inline void VCOM_SendData(uint8_t *buf, uint16_t len)
 {
   VCOM_Transmit_FS(buf, len);
+}
+
+void VCOM_printf(const char *format, ...)
+{
+  va_list args;
+  va_start(args, format);
+  
+  // Use vsnprintf to format the string into a buffer
+  int len = vsnprintf(UserTxBufferFS, APP_TX_DATA_SIZE, format, args);
+
+  if (len > 0 && len < APP_TX_DATA_SIZE) {
+    VCOM_Transmit_FS((uint8_t *)UserTxBufferFS, len);
+  }
+  
+  va_end(args);
 }
 
 //--------------------------------------------------------------------+
