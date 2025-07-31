@@ -139,7 +139,7 @@ void VCOM_printf(const char *format, ...)
     va_start(args, format);
 
     // Use vsnprintf to format the string into a buffer
-    int len = vsnprintf(UserTxBufferFS, APP_TX_DATA_SIZE, format, args);
+    int len = vsnprintf((char *)UserTxBufferFS, APP_TX_DATA_SIZE, format, args);
 
     if (len > 0 && len < APP_TX_DATA_SIZE)
     {
