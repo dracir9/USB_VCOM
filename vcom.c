@@ -3,7 +3,7 @@
  * @author Ricard Bitriá Ribes (https://github.com/dracir9)
  * Created Date: 05-02-2025
  * -----
- * Last Modified: 19-07-2025
+ * Last Modified: 08-09-2025
  * Modified By: Ricard Bitriá Ribes
  * -----
  */
@@ -141,9 +141,14 @@ void VCOM_printf(const char *format, ...)
     // Use vsnprintf to format the string into a buffer
     int len = vsnprintf((char *)UserTxBufferFS, APP_TX_DATA_SIZE, format, args);
 
-    if (len > 0 && len < APP_TX_DATA_SIZE)
+    if (len > 0)
     {
-        VCOM_Transmit_FS((uint8_t *)UserTxBufferFS, len);
+        if (len > APP_TX_DATA_SIZE)
+            len = APP_TX_DATA_SIZE; // Truncate if necessary
+            
+        uint8_t result = USBD_BUSY;
+        while (result == USBD_BUSY)
+            result = VCOM_Transmit_FS((uint8_t *)UserTxBufferFS, len);
     }
 
     va_end(args);
