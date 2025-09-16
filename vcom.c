@@ -3,7 +3,7 @@
  * @author Ricard Bitriá Ribes (https://github.com/dracir9)
  * Created Date: 05-02-2025
  * -----
- * Last Modified: 08-09-2025
+ * Last Modified: 16-09-2025
  * Modified By: Ricard Bitriá Ribes
  * -----
  */
@@ -120,17 +120,17 @@ void VCOM_Discard()
 
 void VCOM_Putc(uint8_t c)
 {
-    VCOM_Transmit_FS(&c, 1);
+    VCOM_SendData(&c, 1);
 }
 
 inline void VCOM_Puts(char s[])
 {
-    VCOM_Transmit_FS((uint8_t *)s, strlen(s));
+    VCOM_SendData((uint8_t *)s, strlen(s));
 }
 
 inline void VCOM_SendData(uint8_t *buf, uint16_t len)
 {
-    VCOM_Transmit_FS(buf, len);
+    while (VCOM_IsConnected() && VCOM_Transmit_FS(buf, len) == USBD_BUSY);
 }
 
 void VCOM_printf(const char *format, ...)
@@ -146,9 +146,7 @@ void VCOM_printf(const char *format, ...)
         if (len > APP_TX_DATA_SIZE)
             len = APP_TX_DATA_SIZE; // Truncate if necessary
             
-        uint8_t result = USBD_BUSY;
-        while (result == USBD_BUSY)
-            result = VCOM_Transmit_FS((uint8_t *)UserTxBufferFS, len);
+        while (VCOM_IsConnected() && VCOM_Transmit_FS((uint8_t *)UserTxBufferFS, len) == USBD_BUSY);
     }
 
     va_end(args);
