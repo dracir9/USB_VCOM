@@ -29,6 +29,7 @@ static char RxBuffer[VCOM_RX_BUF_SIZE] = {0};
 static uint8_t strReceived = RESET;
 static uint16_t strLen = 0;
 static uint8_t vcomOpen = RESET;
+static uint16_t TxLength = 0;
 uint8_t RTSstatus, DTRstatus;
 
 /* Private function declaration */
@@ -139,17 +140,44 @@ void VCOM_printf(const char *format, ...)
     va_start(args, format);
 
     // Use vsnprintf to format the string into a buffer
-    int len = vsnprintf((char *)UserTxBufferFS, APP_TX_DATA_SIZE, format, args);
+    int len = vsnprintf((char *)&UserTxBufferFS[TxLength], APP_TX_DATA_SIZE - TxLength, format, args);
+
+    va_end(args);
 
     if (len > 0)
     {
-        if (len > APP_TX_DATA_SIZE)
-            len = APP_TX_DATA_SIZE; // Truncate if necessary
-            
-        while (VCOM_IsConnected() && VCOM_Transmit_FS((uint8_t *)UserTxBufferFS, len) == USBD_BUSY);
-    }
+        // Check if the formatted string length exceeds the buffer size
+        if (len > APP_TX_DATA_SIZE - TxLength)
+        {
+            // Flush current buffer
+            while (VCOM_IsConnected() && VCOM_Transmit_FS((uint8_t *)UserTxBufferFS, TxLength) == USBD_BUSY);
+            TxLength = 0;
 
-    va_end(args);
+            va_start(args, format);
+
+            // Use vsnprintf to format the string into a buffer
+            len = vsnprintf((char *)UserTxBufferFS, APP_TX_DATA_SIZE, format, args);
+
+            va_end(args);
+
+            if (len > APP_TX_DATA_SIZE)
+                len = APP_TX_DATA_SIZE; // Truncate if necessary
+        }
+
+        TxLength += len;
+
+        // Find non printable characters
+        for (int i = 1; i <= len; i++)
+        {
+            if (UserTxBufferFS[TxLength - i] < 32)
+            {
+                // Flush current buffer
+                while (VCOM_IsConnected() && VCOM_Transmit_FS((uint8_t *)UserTxBufferFS, TxLength) == USBD_BUSY);
+                TxLength = 0;
+                break;
+            }
+        }
+    }
 }
 
 //--------------------------------------------------------------------+
