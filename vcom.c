@@ -3,7 +3,7 @@
  * @author Ricard Bitriá Ribes (https://github.com/dracir9)
  * Created Date: 05-02-2025
  * -----
- * Last Modified: 16-09-2025
+ * Last Modified: 22-09-2025
  * Modified By: Ricard Bitriá Ribes
  * -----
  */
@@ -61,6 +61,15 @@ inline void VCOM_Task()
 inline uint8_t VCOM_IsConnected()
 {
     return vcomOpen;
+}
+
+inline uint8_t VCOM_IsBusy()
+{
+    USBD_CDC_HandleTypeDef *hcdc = (USBD_CDC_HandleTypeDef *)hUsbDeviceFS.pClassData;
+    if (hcdc->TxState != 0)
+        return USBD_BUSY;
+    else
+        return USBD_OK;
 }
 
 inline uint16_t VCOM_GetData(uint8_t *buf, uint16_t len)
@@ -139,6 +148,9 @@ void VCOM_printf(const char *format, ...)
     va_list args;
     va_start(args, format);
 
+    // If there is a string pending to send, wait until it is sent
+    while (VCOM_IsBusy());
+
     // Use vsnprintf to format the string into a buffer
     int len = vsnprintf((char *)&UserTxBufferFS[TxLength], APP_TX_DATA_SIZE - TxLength, format, args);
 
@@ -152,6 +164,9 @@ void VCOM_printf(const char *format, ...)
             // Flush current buffer
             while (VCOM_IsConnected() && VCOM_Transmit_FS((uint8_t *)UserTxBufferFS, TxLength) == USBD_BUSY);
             TxLength = 0;
+
+            // Wait until the transmission is complete
+            while (VCOM_IsBusy());
 
             va_start(args, format);
 
@@ -371,7 +386,7 @@ int _write(int file, char *ptr, int len)
 {
     (void)file;
 
-    while (VCOM_IsConnected() && CDC_Transmit_FS((uint8_t *)ptr, (uint16_t)len) == USBD_BUSY);
+    while (VCOM_IsConnected() && VCOM_Transmit_FS((uint8_t *)ptr, (uint16_t)len) == USBD_BUSY);
     return len;
 }
 #endif

@@ -3,7 +3,7 @@
  * @author Ricard Bitriá Ribes (https://github.com/dracir9)
  * Created Date: 05-02-2025
  * -----
- * Last Modified: 10-07-2025
+ * Last Modified: 22-09-2025
  * Modified By: Ricard Bitriá Ribes
  * -----
  */
@@ -93,6 +93,13 @@ uint8_t VCOM_IsStrAvailable();
  * @return uint8_t          Returns 1 if the communication is active, returns 0 otherwise
  */
 uint8_t VCOM_IsConnected();
+
+/**
+ * @brief  Check if the USB virtual COM is busy sending data
+ * 
+ * @return uint8_t          Returns USBD_BUSY if busy, USBD_OK otherwise
+ */
+uint8_t VCOM_IsBusy();
 
 /**
  * @brief  Force sending data
