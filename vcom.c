@@ -3,7 +3,7 @@
  * @author Ricard Bitriá Ribes (https://github.com/dracir9)
  * Created Date: 05-02-2025
  * -----
- * Last Modified: 22-09-2025
+ * Last Modified: 05-11-2025
  * Modified By: Ricard Bitriá Ribes
  * -----
  */
@@ -138,12 +138,13 @@ inline void VCOM_Puts(char s[])
     VCOM_SendData((uint8_t *)s, strlen(s));
 }
 
-inline void VCOM_SendData(uint8_t *buf, uint16_t len)
+inline int32_t VCOM_SendData(uint8_t *buf, uint16_t len)
 {
     while (VCOM_IsConnected() && VCOM_Transmit_FS(buf, len) == USBD_BUSY);
+    return 0;
 }
 
-void VCOM_printf(const char *format, ...)
+int VCOM_printf(const char *format, ...)
 {
     va_list args;
     va_start(args, format);
@@ -193,6 +194,7 @@ void VCOM_printf(const char *format, ...)
             }
         }
     }
+    return len;
 }
 
 //--------------------------------------------------------------------+
