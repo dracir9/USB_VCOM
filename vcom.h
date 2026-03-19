@@ -3,7 +3,7 @@
  * @author Ricard Bitriá Ribes (https://github.com/dracir9)
  * Created Date: 05-02-2025
  * -----
- * Last Modified: 05-11-2025
+ * Last Modified: 19-03-2026
  * Modified By: Ricard Bitriá Ribes
  * -----
  */
@@ -134,7 +134,7 @@ void VCOM_Puts(char s[]);
  * @param  buf              Buffer pointer containing the data to send
  * @param  len              Number of bytes to send
  */
-int32_t VCOM_SendData(uint8_t *buf, uint16_t len);
+int VCOM_SendData(uint8_t *buf, uint16_t len);
 
 /**
  * @brief  Print formatted data over USB virtual COM
