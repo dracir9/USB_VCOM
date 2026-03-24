@@ -10,6 +10,6 @@ target_include_directories(USB_VCOM PUBLIC
 )
 
 # Link STM32CubeMX generated library to USB_VCOM
-target_link_libraries(USB_VCOM
+target_link_libraries(USB_VCOM PRIVATE
     stm32cubemx
 )
