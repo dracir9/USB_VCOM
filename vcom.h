@@ -3,7 +3,7 @@
  * @author Ricard Bitriá Ribes (https://github.com/dracir9)
  * Created Date: 05-02-2025
  * -----
- * Last Modified: 19-03-2026
+ * Last Modified: 21-07-2026
  * Modified By: Ricard Bitriá Ribes
  * -----
  */
@@ -46,11 +46,21 @@
 #endif
 
 /**
- * @brief  
+ * @brief  Initialize the USB virtual COM
  * 
  */
 void VCOM_Init();
 
+/**
+ * @brief  De-initialize the USB virtual COM
+ * 
+ */
+void VCOM_DeInit();
+
+/**
+ * @brief  Task function for the USB virtual COM
+ * 
+ */
 void VCOM_Task();
 
 /**

@@ -3,7 +3,7 @@
  * @author Ricard Bitriá Ribes (https://github.com/dracir9)
  * Created Date: 05-02-2025
  * -----
- * Last Modified: 19-03-2026
+ * Last Modified: 21-07-2026
  * Modified By: Ricard Bitriá Ribes
  * -----
  */
@@ -51,6 +51,12 @@ inline void VCOM_Init()
 
     strReceived = RESET;
     strLen = 0;
+}
+
+void VCOM_DeInit()
+{
+    USBD_Stop(&hUsbDeviceFS);
+    USBD_DeInit(&hUsbDeviceFS);
 }
 
 inline void VCOM_Task()
